@@ -660,19 +660,14 @@ BMI 23.1
                     continue;
                 }
                 
-                // Parse blood pressure
+             // Parse blood pressure
                 if (line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/)) {
                     const match = line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/);
                     if (match) {
                         results.push({
                             examId,
-                            item: '血圧_収縮期',
-                            value: match[1]
-                        });
-                        results.push({
-                            examId,
-                            item: '血圧_拡張期',
-                            value: match[2]
+                            item: '収縮期血圧/拡張期血圧',
+                            value: `${match[1]}/${match[2]}`
                         });
                     }
                     continue;
