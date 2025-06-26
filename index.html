@@ -1,1 +1,826 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>受診データCSV変換アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: monospace;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        .btn-secondary {
+            background-color: #008CBA;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #007399;
+        }
+
+        .btn-download {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background-color: #e68900;
+        }
+
+        #previewSection {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .preview-header h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+        }
+
+        .item-count {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .preview-table th {
+            background-color: #f2f2f2;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+            font-weight: bold;
+        }
+
+        .preview-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .preview-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .error-message {
+            display: none;
+            background-color: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+        }
+
+        .usage-info {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+
+        .usage-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .usage-info ul {
+            margin-left: 20px;
+        }
+
+        .usage-info li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .preview-table {
+                font-size: 14px;
+            }
+
+            .preview-table th,
+            .preview-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>受診データCSV変換アプリ</h1>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div class="form-group">
+            <label for="examId">受診ID *</label>
+            <input type="text" id="examId" placeholder="例: 12345">
+        </div>
+        
+        <div class="form-group">
+            <label for="examData">受診データ *</label>
+            <textarea id="examData" placeholder="受診データをペーストまたは入力してください"></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button type="button" class="btn-primary" onclick="analyzeData()">データ解析</button>
+            <button type="button" class="btn-secondary" onclick="loadSampleData()">サンプルデータを入力</button>
+        </div>
+        
+        <div id="previewSection">
+            <div class="preview-header">
+                <h2>解析結果プレビュー</h2>
+                <span class="item-count">検出項目数: <span id="itemCount">0</span>件</span>
+            </div>
+            <table class="preview-table">
+                <thead>
+                    <tr>
+                        <th>受診ID</th>
+                        <th>項目</th>
+                        <th>値</th>
+                    </tr>
+                </thead>
+                <tbody id="previewBody">
+                </tbody>
+            </table>
+            <button type="button" class="btn-download" onclick="downloadCSV()">CSVダウンロード</button>
+        </div>
+        
+        <div class="usage-info">
+            <h3>使用方法</h3>
+            <ul>
+                <li>受診IDを入力してください（必須）</li>
+                <li>受診データをテキストエリアにペーストまたは入力してください</li>
+                <li>「データ解析」ボタンをクリックすると、自動的にデータが解析されます</li>
+                <li>解析結果を確認後、「CSVダウンロード」ボタンでCSVファイルをダウンロードできます</li>
+                <li>サンプルデータで動作を確認することができます</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let parsedData = [];
+
+        function loadSampleData() {
+            document.getElementById('examId').value = '12345';
+            document.getElementById('examData').value = `氏名　タナカ　タロウ
+田中　太郎
+生年月日　1985年(昭和60年)3月15日
+年齢　38歳
+性別　男性
+
+血圧 128/82 mmHg
+脈拍 72 bpm
+体重 68.5 kg
+身長 172 cm
+BMI 23.1
+腹囲 85 cm
+
+尿　蛋白 -
+尿　糖 -
+尿　潜血 -
+尿　ウロビリノーゲン ±
+
+視力 右（裸眼） 0.8
+視力 左（裸眼） 0.7
+視力 右（矯正） 1.2
+視力 左（矯正） 1.0
+
+聴力（左右1000Hz,4000Hz） 異常なし`;
+        }
+
+        function analyzeData() {
+            const examId = document.getElementById('examId').value.trim();
+            const examData = document.getElementById('examData').value.trim();
+            
+            // Clear previous error
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
+            // Validation
+            if (!examId) {
+                showError('受診IDを入力してください。');
+                return;
+            }
+            
+            if (!examData) {
+                showError('受診データを入力してください。');
+                return;
+            }
+            
+            // Parse data
+            parsedData = parseExamData(examId, examData);
+            
+            if (parsedData.length === 0) {
+                showError('解析可能な項目が見つかりませんでした。データ形式を確認してください。');
+                return;
+            }
+            
+            // Display preview
+            displayPreview(parsedData);
+        }
+
+        function parseExamData(examId, data) {
+            const results = [];
+            const lines = data.split('\n');
+            
+            // console.log('Parsing data:', data); // Debug log
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+                
+                // console.log('Processing line:', line); // Debug log
+                
+                // Parse basic info with bold markers
+                const boldMatch = line.match(/\*\*(.+?)\*\*(.+)/);
+                if (boldMatch) {
+                    const [, key, value] = boldMatch;
+                    // console.log('Bold match found:', key, '=', value); // Debug log
+                    
+                    if (key === '氏名') {
+                        // Check if the value is katakana and if next line is kanji
+                        if (/^[ァ-ヶー・　]+$/.test(value) && i + 1 < lines.length) {
+                            const nextLine = lines[i + 1].trim();
+                            // Check if next line contains kanji (not a new field)
+                            if (nextLine && /^[^:：\s\*]*[一-龯]/.test(nextLine) && !/^\*\*/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: value
+                                });
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: nextLine
+                                });
+                                i++; // Skip the next line as we've already processed it
+                                continue;
+                            }
+                        }
+                        // Parse name: カタカナ姓 カタカナ名 漢字姓 漢字名
+                        const nameParts = value.trim().split(/\s+/);
+                        console.log('Name parts:', nameParts); // Debug name parsing
+                        
+                        if (nameParts.length >= 4) {
+                            results.push({
+                                examId,
+                                item: '氏名（ふりがな）',
+                                value: `${nameParts[0]}　${nameParts[1]}`
+                            });
+                            results.push({
+                                examId,
+                                item: '氏名（漢字）',
+                                value: `${nameParts[2]}　${nameParts[3]}`
+                            });
+                        } else if (nameParts.length === 3) {
+                            // Handle case: カタカナ姓名 漢字姓 漢字名
+                            results.push({
+                                examId,
+                                item: '氏名（ふりがな）',
+                                value: nameParts[0]
+                            });
+                            results.push({
+                                examId,
+                                item: '氏名（漢字）',
+                                value: `${nameParts[1]}　${nameParts[2]}`
+                            });
+                        } else if (nameParts.length === 2) {
+                            // Handle case: カタカナ姓名 漢字姓名
+                            // Check if first part is katakana and second is kanji
+                            if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: nameParts[0]
+                                });
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: nameParts[1]
+                                });
+                            } else {
+                                // If pattern doesn't match, just add as is
+                                results.push({
+                                    examId,
+                                    item: '氏名',
+                                    value: value.trim()
+                                });
+                            }
+                        } else if (nameParts.length === 1) {
+                            // Single name - check if it's katakana only
+                            const fullName = value.trim();
+                            if (/^[ァ-ヶー・　]+$/.test(fullName)) {
+                                // If all katakana, treat as furigana
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: fullName
+                                });
+                            } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
+                                // If only kanji, treat as kanji name
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: fullName
+                                });
+                            } else {
+                                // Mixed or other format
+                                results.push({
+                                    examId,
+                                    item: '氏名',
+                                    value: fullName
+                                });
+                            }
+                        } else {
+                            // Other format
+                            results.push({
+                                examId,
+                                item: '氏名',
+                                value: value.trim()
+                            });
+                        }
+                    } else if (key === '生年月日') {
+                        // Parse birth date: YYYY年(元号YY年)M月D日
+                        const dateMatch = value.match(/(\d{4})年.*?(\d{1,2})月(\d{1,2})日/);
+                        if (dateMatch) {
+                            const [, year, month, day] = dateMatch;
+                            const formattedDate = `${year}/${month.padStart(2, '0')}/${day.padStart(2, '0')}`;
+                            results.push({
+                                examId,
+                                item: key,
+                                value: formattedDate
+                            });
+                        } else {
+                            // If date format doesn't match, keep original
+                            results.push({
+                                examId,
+                                item: key,
+                                value: value.trim()
+                            });
+                        }
+                    } else if (key === '年齢') {
+                        // Extract age number
+                        const ageMatch = value.match(/(\d+)歳/);
+                        if (ageMatch) {
+                            results.push({
+                                examId,
+                                item: key,
+                                value: ageMatch[1]
+                            });
+                        } else {
+                            // If age format doesn't match, keep original
+                            results.push({
+                                examId,
+                                item: key,
+                                value: value.trim()
+                            });
+                        }
+                    } else {
+                        results.push({
+                            examId,
+                            item: key,
+                            value: value.trim()
+                        });
+                    }
+                    continue;
+                }
+                
+                // Alternative parsing for basic info without bold markers
+                // Pattern: 項目名：値 or 項目名:値 or 項目名　値
+                const basicInfoMatch = line.match(/^(氏名|生年月日|年齢|性別)[:：\s]+(.+)$/);
+                if (basicInfoMatch) {
+                    const [, key, value] = basicInfoMatch;
+                    // console.log('Basic info match found:', key, '=', value); // Debug log
+                    
+                    if (key === '氏名') {
+                        // Check if the value is katakana and if next line is kanji
+                        if (/^[ァ-ヶー・　]+$/.test(value) && i + 1 < lines.length) {
+                            const nextLine = lines[i + 1].trim();
+                            // Check if next line contains kanji (not a new field)
+                            if (nextLine && /^[^:：\s]*[一-龯]/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: value
+                                });
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: nextLine
+                                });
+                                i++; // Skip the next line as we've already processed it
+                                continue;
+                            }
+                        }
+                        // Parse name: カタカナ姓 カタカナ名 漢字姓 漢字名
+                        const nameParts = value.trim().split(/\s+/);
+                        console.log('Name parts:', nameParts); // Debug name parsing
+                        
+                        if (nameParts.length >= 4) {
+                            results.push({
+                                examId,
+                                item: '氏名（ふりがな）',
+                                value: `${nameParts[0]}　${nameParts[1]}`
+                            });
+                            results.push({
+                                examId,
+                                item: '氏名（漢字）',
+                                value: `${nameParts[2]}　${nameParts[3]}`
+                            });
+                        } else if (nameParts.length === 3) {
+                            // Handle case: カタカナ姓名 漢字姓 漢字名
+                            results.push({
+                                examId,
+                                item: '氏名（ふりがな）',
+                                value: nameParts[0]
+                            });
+                            results.push({
+                                examId,
+                                item: '氏名（漢字）',
+                                value: `${nameParts[1]}　${nameParts[2]}`
+                            });
+                        } else if (nameParts.length === 2) {
+                            // Handle case: カタカナ姓名 漢字姓名
+                            // Check if first part is katakana and second is kanji
+                            if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: nameParts[0]
+                                });
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: nameParts[1]
+                                });
+                            } else {
+                                // If pattern doesn't match, just add as is
+                                results.push({
+                                    examId,
+                                    item: '氏名',
+                                    value: value.trim()
+                                });
+                            }
+                        } else if (nameParts.length === 1) {
+                            // Single name - check if it's katakana only
+                            const fullName = value.trim();
+                            if (/^[ァ-ヶー・　]+$/.test(fullName)) {
+                                // If all katakana, treat as furigana
+                                results.push({
+                                    examId,
+                                    item: '氏名（ふりがな）',
+                                    value: fullName
+                                });
+                            } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
+                                // If only kanji, treat as kanji name
+                                results.push({
+                                    examId,
+                                    item: '氏名（漢字）',
+                                    value: fullName
+                                });
+                            } else {
+                                // Mixed or other format
+                                results.push({
+                                    examId,
+                                    item: '氏名',
+                                    value: fullName
+                                });
+                            }
+                        } else {
+                            // Other format
+                            results.push({
+                                examId,
+                                item: '氏名',
+                                value: value.trim()
+                            });
+                        }
+                    } else if (key === '生年月日') {
+                        // Parse birth date: YYYY年(元号YY年)M月D日
+                        const dateMatch = value.match(/(\d{4})年.*?(\d{1,2})月(\d{1,2})日/);
+                        if (dateMatch) {
+                            const [, year, month, day] = dateMatch;
+                            const formattedDate = `${year}/${month.padStart(2, '0')}/${day.padStart(2, '0')}`;
+                            results.push({
+                                examId,
+                                item: key,
+                                value: formattedDate
+                            });
+                        } else {
+                            // If date format doesn't match, keep original
+                            results.push({
+                                examId,
+                                item: key,
+                                value: value.trim()
+                            });
+                        }
+                    } else if (key === '年齢') {
+                        // Extract age number
+                        const ageMatch = value.match(/(\d+)歳/);
+                        if (ageMatch) {
+                            results.push({
+                                examId,
+                                item: key,
+                                value: ageMatch[1]
+                            });
+                        } else {
+                            // If age format doesn't match, keep original
+                            results.push({
+                                examId,
+                                item: key,
+                                value: value.trim()
+                            });
+                        }
+                    } else {
+                        results.push({
+                            examId,
+                            item: key,
+                            value: value.trim()
+                        });
+                    }
+                    continue;
+                }
+                
+                // Parse blood pressure
+                if (line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/)) {
+                    const match = line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/);
+                    if (match) {
+                        results.push({
+                            examId,
+                            item: '血圧_収縮期',
+                            value: match[1]
+                        });
+                        results.push({
+                            examId,
+                            item: '血圧_拡張期',
+                            value: match[2]
+                        });
+                    }
+                    continue;
+                }
+                
+                // Parse vital signs
+                const vitalMatch = line.match(/^(脈拍|体重|BMI|腹囲|身長)\s+([0-9.]+)\s*(.*)$/);
+                if (vitalMatch) {
+                    const [, item, value] = vitalMatch;
+                    results.push({
+                        examId,
+                        item,
+                        value: value
+                    });
+                    continue;
+                }
+                
+                // Parse urine test results
+                const urineMatch = line.match(/^尿\s*(.+?)\s+([\+\-±]+|\d+\.?\d*)$/);
+                if (urineMatch) {
+                    const [, testItem, result] = urineMatch;
+                    results.push({
+                        examId,
+                        item: `尿_${testItem.trim()}`,
+                        value: result
+                    });
+                    continue;
+                }
+                
+                // Parse vision test results
+                const visionMatch = line.match(/^視力\s+(.+?)\s+([0-9.]+)$/);
+                if (visionMatch) {
+                    const [, position, value] = visionMatch;
+                    results.push({
+                        examId,
+                        item: `視力_${position.trim()}`,
+                        value
+                    });
+                    continue;
+                }
+                
+                // Parse hearing test results
+                const hearingMatch = line.match(/^聴力(.+?)$/);
+                if (hearingMatch) {
+                    const [, details] = hearingMatch;
+                    // Parse hearing details more specifically
+                    const detailsClean = details.trim();
+                    
+                    // Check for specific patterns
+                    if (detailsClean.includes('右') && detailsClean.includes('異常あり')) {
+                        results.push({
+                            examId,
+                            item: '聴力_右1000Hz/4000Hz',
+                            value: '異常あり'
+                        });
+                    } else if (detailsClean.includes('左') && detailsClean.includes('異常あり')) {
+                        results.push({
+                            examId,
+                            item: '聴力_左1000Hz/4000Hz',
+                            value: '異常あり'
+                        });
+                    } else if (detailsClean.includes('異常なし')) {
+                        results.push({
+                            examId,
+                            item: '聴力_1000Hz/4000Hz',
+                            value: '異常なし'
+                        });
+                    } else {
+                        // Default format
+                        results.push({
+                            examId,
+                            item: '聴力',
+                            value: detailsClean
+                        });
+                    }
+                    continue;
+                }
+            }
+            
+            console.log('Parsed results:', results); // Final debug log
+            return results;
+        }
+
+        function displayPreview(data) {
+            const previewSection = document.getElementById('previewSection');
+            const previewBody = document.getElementById('previewBody');
+            const itemCount = document.getElementById('itemCount');
+            
+            // Clear previous preview
+            previewBody.innerHTML = '';
+            
+            // Add rows
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHtml(row.examId)}</td>
+                    <td>${escapeHtml(row.item)}</td>
+                    <td>${escapeHtml(row.value)}</td>
+                `;
+                previewBody.appendChild(tr);
+            });
+            
+            itemCount.textContent = data.length;
+            previewSection.style.display = 'block';
+        }
+
+        function downloadCSV() {
+            if (parsedData.length === 0) {
+                showError('ダウンロードするデータがありません。');
+                return;
+            }
+            
+            // Create CSV content with BOM
+            const BOM = '\uFEFF';
+            let csvContent = BOM + '受診ID,項目,値\n';
+            
+            parsedData.forEach(row => {
+                csvContent += `"${row.examId}","${row.item}","${row.value}"\n`;
+            });
+            
+            // Create blob and download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const examId = document.getElementById('examId').value;
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `受診データ_${examId}_${today}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
