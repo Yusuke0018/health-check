@@ -298,6 +298,8 @@ BMI 23.1
 尿　糖 -
 尿　潜血 -
 尿　ウロビリノーゲン ±
+尿pH 6.5
+尿比重 1.015
 
 視力 右（裸眼） 0.8
 視力 左（裸眼） 0.7
@@ -690,40 +692,60 @@ HbA1c 5.6 %`;
                 
                 // Parse urine test results - improved pattern
                 // Handle various formats: 尿蛋白, 尿　蛋白, 尿 蛋白 etc.
-                const urineMatch = line.match(/^尿[\s　]*(.+?)[\s　]+([\+\-±]+|\d+\.?\d*|陰性|陽性|擬陽性)$/);
+                // Support pH values (e.g., 6.5, 7.0) and other results
+                const urineMatch = line.match(/^尿[\s　]*(.+?)[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineMatch) {
                     const [, testItem, result] = urineMatch;
                     // Normalize the test item name
                     const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
-                    results.push({
-                        examId,
-                        item: `尿_${normalizedItem}`,
-                        value: result
-                    });
+                    // Only add if result is not empty
+                    if (result && result.trim()) {
+                        results.push({
+                            examId,
+                            item: `尿_${normalizedItem}`,
+                            value: result
+                        });
+                    }
                     continue;
                 }
                 
                 // Alternative format: 尿検査 蛋白 -
-                const urineTestMatch = line.match(/^尿検査[\s　]+(.+?)[\s　]+([\+\-±]+|\d+\.?\d*|陰性|陽性|擬陽性)$/);
+                const urineTestMatch = line.match(/^尿検査[\s　]+(.+?)[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
                     const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
-                    results.push({
-                        examId,
-                        item: `尿_${normalizedItem}`,
-                        value: result
-                    });
+                    if (result && result.trim()) {
+                        results.push({
+                            examId,
+                            item: `尿_${normalizedItem}`,
+                            value: result
+                        });
+                    }
                     continue;
                 }
                 
                 // Parse urine test with bold markers
-                const urineBoldMatch = line.match(/\*\*尿[\s　]*(.+?)\*\*[\s　]+([\+\-±]+|\d+\.?\d*|陰性|陽性|擬陽性)$/);
+                const urineBoldMatch = line.match(/\*\*尿[\s　]*(.+?)\*\*[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
                     const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    if (result && result.trim()) {
+                        results.push({
+                            examId,
+                            item: `尿_${normalizedItem}`,
+                            value: result
+                        });
+                    }
+                    continue;
+                }
+                
+                // Additional pattern for items like "尿pH 6.5" or "尿 pH 7.0"
+                const urineSpecificMatch = line.match(/^尿[\s　]*(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)[\s　]*[:：]?[\s　]*([\d.]+|[\+\-±]+|陰性|陽性|擬陽性|正常|異常)$/);
+                if (urineSpecificMatch) {
+                    const [, testItem, result] = urineSpecificMatch;
                     results.push({
                         examId,
-                        item: `尿_${normalizedItem}`,
+                        item: `尿_${testItem}`,
                         value: result
                     });
                     continue;
