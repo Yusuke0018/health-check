@@ -374,7 +374,10 @@ BMI　25.9
 聴力　異常なし
 
 空腹時血糖　108
-HbA1c 5.9%`;
+HbA1c 5.9%
+
+喫煙歴：禁煙後、18～30歳、平均10本／日
+飲酒歴：2日／週`;
         }
 
         function analyzeData() {
@@ -834,14 +837,15 @@ HbA1c 5.9%`;
                 }
                 
                 // Parse vision test results - flexible format
-                const visionMatch = line.match(new RegExp(`^視力${SP_STAR}(.+?)${SP_PLUS}([0-9\\.\\,]+)$`));
+                // Accept numeric values or values with kanji (e.g., "0.1以下")
+                const visionMatch = line.match(new RegExp(`^視力${SP_STAR}(.+?)${SP_PLUS}([0-9\\.\\,]+[\\u4e00-\\u9fff]*|[0-9\\.\\,]+以[上下])$`));
                 if (visionMatch) {
                     const [, position, value] = visionMatch;
-                    const normalizedValue = value.replace(',', '.');
+                    // Keep the value as is, including any kanji characters
                     results.push({
                         examId,
                         item: `視力_${position.trim()}`,
-                        value: normalizedValue
+                        value: value
                     });
                     continue;
                 }
@@ -939,6 +943,41 @@ HbA1c 5.9%`;
                     });
                     continue;
                 }
+                
+                // Parse smoking and drinking history as 問診_所見
+                const smokingMatch = line.match(new RegExp(`^喫煙歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (smokingMatch) {
+                    const [, details] = smokingMatch;
+                    // Store smoking history temporarily
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.smoking = `喫煙歴：${details}`;
+                    continue;
+                }
+                
+                const drinkingMatch = line.match(new RegExp(`^飲酒歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (drinkingMatch) {
+                    const [, details] = drinkingMatch;
+                    // Store drinking history temporarily
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.drinking = `飲酒歴：${details}`;
+                    continue;
+                }
+            }
+            
+            // After processing all lines, combine smoking and drinking history if found
+            if (this.tempQuestionnaire && (this.tempQuestionnaire.smoking || this.tempQuestionnaire.drinking)) {
+                const combinedHistory = [];
+                if (this.tempQuestionnaire.smoking) combinedHistory.push(this.tempQuestionnaire.smoking);
+                if (this.tempQuestionnaire.drinking) combinedHistory.push(this.tempQuestionnaire.drinking);
+                
+                results.push({
+                    examId,
+                    item: '問診_所見',
+                    value: combinedHistory.join(' ')
+                });
+                
+                // Clear temporary storage
+                delete this.tempQuestionnaire;
             }
             
             console.log('Parsed results:', results); // Final debug log
