@@ -690,8 +690,7 @@
                     // Normalize the test item name
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
                     // Normalize common variations
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     // Only add if result is not empty
                     if (result && result.trim()) {
                         // Normalize decimal separator
@@ -710,8 +709,7 @@
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     if (result && result.trim()) {
                         const normalizedResult = result.replace(',', '.');
                         results.push({
@@ -728,8 +726,7 @@
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     if (result && result.trim()) {
                         const normalizedResult = result.replace(',', '.');
                         results.push({
