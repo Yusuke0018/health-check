@@ -275,6 +275,14 @@
                 <li>解析結果を確認後、「CSVダウンロード」ボタンでCSVファイルをダウンロードできます</li>
                 <li>サンプルデータで動作を確認することができます</li>
             </ul>
+            <h3>対応データ形式</h3>
+            <ul>
+                <li>全角・半角スペースの混在に対応</li>
+                <li>項目の順番は自由</li>
+                <li>尿検査: -, +, 2+, 3+, ±, 陰性, 陽性, 数値など</li>
+                <li>血糖値・HbA1c: 空腹時血糖、随時血糖、食後血糖に対応</li>
+                <li>カンマ区切りの小数点（8,5）にも対応</li>
+            </ul>
         </div>
     </div>
 
@@ -426,7 +434,7 @@ HbA1c 5.9%`;
                     
                     if (key === '氏名') {
                         // Check if the value is katakana and if next line is kanji
-                        if (/^[ァ-ヶー・　]+$/.test(value) && i + 1 < lines.length) {
+                        if (/^[ァ-ヶー・　\s]+$/.test(value.trim()) && i + 1 < lines.length) {
                             const nextLine = lines[i + 1].trim();
                             // Check if next line contains kanji (not a new field)
                             if (nextLine && /^[^:：\s\*]*[一-龯]/.test(nextLine) && !/^\*\*/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
@@ -474,7 +482,7 @@ HbA1c 5.9%`;
                         } else if (nameParts.length === 2) {
                             // Handle case: カタカナ姓名 漢字姓名
                             // Check if first part is katakana and second is kanji
-                            if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
+                            if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
                                     item: '氏名（ふりがな）',
@@ -496,7 +504,7 @@ HbA1c 5.9%`;
                         } else if (nameParts.length === 1) {
                             // Single name - check if it's katakana only
                             const fullName = value.trim();
-                            if (/^[ァ-ヶー・　]+$/.test(fullName)) {
+                            if (/^[ァ-ヶー・　\s]+$/.test(fullName)) {
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
@@ -528,7 +536,7 @@ HbA1c 5.9%`;
                         }
                     } else if (key === '生年月日') {
                         // Parse birth date: YYYY年(元号YY年)M月D日
-                        const dateMatch = value.match(/(\d{4})年.*?(\d{1,2})月(\d{1,2})日/);
+                        const dateMatch = value.match(/(\d{4})[\s　]*年.*?(\d{1,2})[\s　]*月[\s　]*(\d{1,2})[\s　]*日/);
                         if (dateMatch) {
                             const [, year, month, day] = dateMatch;
                             const formattedDate = `${year}/${month.padStart(2, '0')}/${day.padStart(2, '0')}`;
@@ -547,7 +555,7 @@ HbA1c 5.9%`;
                         }
                     } else if (key === '年齢') {
                         // Extract age number
-                        const ageMatch = value.match(/(\d+)歳/);
+                        const ageMatch = value.match(/(\d+)[\s　]*歳/);
                         if (ageMatch) {
                             results.push({
                                 examId,
@@ -581,7 +589,7 @@ HbA1c 5.9%`;
                     
                     if (key === '氏名') {
                         // Check if the value is katakana and if next line is kanji
-                        if (/^[ァ-ヶー・　]+$/.test(value) && i + 1 < lines.length) {
+                        if (/^[ァ-ヶー・　\s]+$/.test(value.trim()) && i + 1 < lines.length) {
                             const nextLine = lines[i + 1].trim();
                             // Check if next line contains kanji (not a new field)
                             if (nextLine && /^[^:：\s]*[一-龯]/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
@@ -629,7 +637,7 @@ HbA1c 5.9%`;
                         } else if (nameParts.length === 2) {
                             // Handle case: カタカナ姓名 漢字姓名
                             // Check if first part is katakana and second is kanji
-                            if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
+                            if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
                                     item: '氏名（ふりがな）',
@@ -651,7 +659,7 @@ HbA1c 5.9%`;
                         } else if (nameParts.length === 1) {
                             // Single name - check if it's katakana only
                             const fullName = value.trim();
-                            if (/^[ァ-ヶー・　]+$/.test(fullName)) {
+                            if (/^[ァ-ヶー・　\s]+$/.test(fullName)) {
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
@@ -683,7 +691,7 @@ HbA1c 5.9%`;
                         }
                     } else if (key === '生年月日') {
                         // Parse birth date: YYYY年(元号YY年)M月D日
-                        const dateMatch = value.match(/(\d{4})年.*?(\d{1,2})月(\d{1,2})日/);
+                        const dateMatch = value.match(/(\d{4})[\s　]*年.*?(\d{1,2})[\s　]*月[\s　]*(\d{1,2})[\s　]*日/);
                         if (dateMatch) {
                             const [, year, month, day] = dateMatch;
                             const formattedDate = `${year}/${month.padStart(2, '0')}/${day.padStart(2, '0')}`;
@@ -702,7 +710,7 @@ HbA1c 5.9%`;
                         }
                     } else if (key === '年齢') {
                         // Extract age number
-                        const ageMatch = value.match(/(\d+)歳/);
+                        const ageMatch = value.match(/(\d+)[\s　]*歳/);
                         if (ageMatch) {
                             results.push({
                                 examId,
@@ -754,8 +762,8 @@ HbA1c 5.9%`;
                 
                 // Parse urine test results - improved pattern
                 // Handle various formats: 尿蛋白, 尿　蛋白, 尿 蛋白 etc.
-                // Support pH values (e.g., 6.5, 7.0, 8,5) and other results
-                const urineMatch = line.match(new RegExp(`^尿${SP_STAR}(.+?)${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
+                // Support pH values (e.g., 6.5, 7.0, 8,5) and results like 1+, 2+, etc.
+                const urineMatch = line.match(new RegExp(`^尿${SP_STAR}(.+?)${SP_PLUS}(\\d*[\\+\\-±]+|[\\+\\-±]+|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineMatch) {
                     const [, testItem, result] = urineMatch;
                     // Normalize the test item name
@@ -777,7 +785,7 @@ HbA1c 5.9%`;
                 }
                 
                 // Alternative format: 尿検査 蛋白 -
-                const urineTestMatch = line.match(new RegExp(`^尿検査${SP_PLUS}(.+?)${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
+                const urineTestMatch = line.match(new RegExp(`^尿検査${SP_PLUS}(.+?)${SP_PLUS}(\\d*[\\+\\-±]+|[\\+\\-±]+|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
@@ -795,7 +803,7 @@ HbA1c 5.9%`;
                 }
                 
                 // Parse urine test with bold markers
-                const urineBoldMatch = line.match(new RegExp(`\\*\\*尿${SP_STAR}(.+?)\\*\\*${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
+                const urineBoldMatch = line.match(new RegExp(`\\*\\*尿${SP_STAR}(.+?)\\*\\*${SP_PLUS}(\\d*[\\+\\-±]+|[\\+\\-±]+|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
@@ -813,7 +821,7 @@ HbA1c 5.9%`;
                 }
                 
                 // Additional pattern for items like "尿pH 6.5" or "尿 pH 7.0"
-                const urineSpecificMatch = line.match(new RegExp(`^尿${SP_STAR}(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)${SP_STAR}[:：]?${SP_STAR}([\\d\\.\\,]+|[\\+\\-±]+|陰性|陽性|擬陽性|正常|異常)$`));
+                const urineSpecificMatch = line.match(new RegExp(`^尿${SP_STAR}(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)${SP_STAR}[:：]?${SP_STAR}([\\d\\.\\,]+|\\d*[\\+\\-±]+|[\\+\\-±]+|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineSpecificMatch) {
                     const [, testItem, result] = urineSpecificMatch;
                     const normalizedResult = result.replace(',', '.');
@@ -846,23 +854,30 @@ HbA1c 5.9%`;
                     const detailsClean = details.trim();
                     
                     // Check for specific patterns
-                    if (detailsClean.includes('右') && detailsClean.includes('異常あり')) {
+                    if (detailsClean.includes('右') && (detailsClean.includes('異常あり') || detailsClean.includes('難聴'))) {
                         results.push({
                             examId,
                             item: '聴力_右1000Hz/4000Hz',
-                            value: '異常あり'
+                            value: detailsClean.includes('難聴') ? detailsClean : '異常あり'
                         });
-                    } else if (detailsClean.includes('左') && detailsClean.includes('異常あり')) {
+                    } else if (detailsClean.includes('左') && (detailsClean.includes('異常あり') || detailsClean.includes('難聴'))) {
                         results.push({
                             examId,
                             item: '聴力_左1000Hz/4000Hz',
-                            value: '異常あり'
+                            value: detailsClean.includes('難聴') ? detailsClean : '異常あり'
                         });
-                    } else if (detailsClean.includes('異常なし')) {
+                    } else if (detailsClean.includes('異常なし') || detailsClean.includes('正常')) {
                         results.push({
                             examId,
                             item: '聴力_1000Hz/4000Hz',
                             value: '異常なし'
+                        });
+                    } else if (detailsClean.match(/\(.*\)/)) {
+                        // Pattern like (左右1000Hz,4000Hz)
+                        results.push({
+                            examId,
+                            item: '聴力',
+                            value: detailsClean
                         });
                     } else {
                         // Default format
