@@ -242,7 +242,8 @@
         
         <div class="button-group">
             <button type="button" class="btn-primary" onclick="analyzeData()">データ解析</button>
-            <button type="button" class="btn-secondary" onclick="loadSampleData()">サンプルデータを入力</button>
+            <button type="button" class="btn-secondary" onclick="loadSampleData()">サンプルデータ1</button>
+            <button type="button" class="btn-secondary" onclick="loadSampleData2()">サンプルデータ2</button>
         </div>
         
         <div id="previewSection">
@@ -281,35 +282,59 @@
 
         function loadSampleData() {
             document.getElementById('examId').value = '12345';
-            document.getElementById('examData').value = `氏名　タナカ　タロウ
-田中　太郎
-生年月日　1985年(昭和60年)3月15日
-年齢　38歳
-性別　男性
+            document.getElementById('examData').value = `氏名    ヨシダ　シンヤ
+吉田　慎也
+性別    男性
+生年月日    1981年(昭和56年)3月19日
+年齢    44歳
+血圧 123/75 mmHg
+脈拍 64 bpm
+体重 62.5 kg
+BMI 20.2
+腹囲 75 cm
+身長 176 cm
 
-血圧 128/82 mmHg
-脈拍 72 bpm
-体重 68.5 kg
-身長 172 cm
-BMI 23.1
-腹囲 85 cm
-
-尿　蛋白 -
-尿　糖 -
-尿　潜血 -
 尿　ウロビリノーゲン ±
-尿pH 6.5
-尿比重 1.015
+尿　潜血 -
+尿　ブドウ糖 -
+尿　蛋白質 1+
+尿　pH 8,5
+視力 右（裸眼） 1.2
+視力 左（裸眼） 1.5
+聴力（左右1000Hz,4000Hz） 異常なし`;
+        }
 
-視力 右（裸眼） 0.8
-視力 左（裸眼） 0.7
-視力 右（矯正） 1.2
+        function loadSampleData2() {
+            document.getElementById('examId').value = '67890';
+            document.getElementById('examData').value = `血圧:135/88
+BMI    24.3
+年齢:52歳
+
 視力 左（矯正） 1.0
+視力 右（矯正） 1.2
 
-聴力（左右1000Hz,4000Hz） 異常なし
+氏名　サトウ　ハナコ
+佐藤　花子
 
-空腹時血糖 98 mg/dl
-HbA1c 5.6 %`;
+尿蛋白 2+
+尿潜血 +
+尿糖 -
+尿 pH 7.0
+
+身長: 158cm
+体重: 60.7kg
+腹囲 88cm
+
+HbA1c: 6.2%
+空腹時血糖値 112mg/dl
+
+性別：女性
+生年月日：1972年(昭和47年)10月5日
+
+聴力 右4000Hz 軽度難聴
+聴力 左 異常なし
+
+脈拍    78`;
         }
 
         function analyzeData() {
@@ -511,8 +536,8 @@ HbA1c 5.6 %`;
                 }
                 
                 // Alternative parsing for basic info without bold markers
-                // Pattern: 項目名：値 or 項目名:値 or 項目名　値
-                const basicInfoMatch = line.match(/^(氏名|生年月日|年齢|性別)[:：\s]+(.+)$/);
+                // Pattern: 項目名：値 or 項目名:値 or 項目名　値 or 項目名    値 (with tabs)
+                const basicInfoMatch = line.match(/^(氏名|生年月日|年齢|性別)[\s\t　]*[:：]?[\s\t　]*(.+)$/);
                 if (basicInfoMatch) {
                     const [, key, value] = basicInfoMatch;
                     // console.log('Basic info match found:', key, '=', value); // Debug log
@@ -665,106 +690,119 @@ HbA1c 5.6 %`;
                     continue;
                 }
                 
-             // Parse blood pressure
-                if (line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/)) {
-                    const match = line.match(/^血圧\s+(\d+)\/(\d+)\s*mmHg/);
-                    if (match) {
-                        results.push({
-                            examId,
-                            item: '収縮期血圧/拡張期血圧',
-                            value: `${match[1]}/${match[2]}`
-                        });
-                    }
+             // Parse blood pressure - flexible format
+                const bloodPressureMatch = line.match(/^血圧[\s\t　]*[:：]?[\s\t　]*(\d+)\s*[\/／]\s*(\d+)\s*(mmHg)?/i);
+                if (bloodPressureMatch) {
+                    const [, systolic, diastolic] = bloodPressureMatch;
+                    results.push({
+                        examId,
+                        item: '収縮期血圧/拡張期血圧',
+                        value: `${systolic}/${diastolic}`
+                    });
                     continue;
                 }
                 
-                // Parse vital signs
-                const vitalMatch = line.match(/^(脈拍|体重|BMI|腹囲|身長)\s+([0-9.]+)\s*(.*)$/);
+                // Parse vital signs - flexible format
+                const vitalMatch = line.match(/^(脈拍|体重|BMI|腹囲|身長)[\s\t　]*[:：]?[\s\t　]*([0-9\.\,]+)\s*(.*)$/);
                 if (vitalMatch) {
                     const [, item, value] = vitalMatch;
+                    const normalizedValue = value.replace(',', '.');
                     results.push({
                         examId,
                         item,
-                        value: value
+                        value: normalizedValue
                     });
                     continue;
                 }
                 
                 // Parse urine test results - improved pattern
                 // Handle various formats: 尿蛋白, 尿　蛋白, 尿 蛋白 etc.
-                // Support pH values (e.g., 6.5, 7.0) and other results
-                const urineMatch = line.match(/^尿[\s　]*(.+?)[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                // Support pH values (e.g., 6.5, 7.0, 8,5) and other results
+                const urineMatch = line.match(/^尿[\s　]*(.+?)[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineMatch) {
                     const [, testItem, result] = urineMatch;
                     // Normalize the test item name
-                    const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    // Normalize common variations
+                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
+                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
                     // Only add if result is not empty
                     if (result && result.trim()) {
+                        // Normalize decimal separator
+                        const normalizedResult = result.replace(',', '.');
                         results.push({
                             examId,
                             item: `尿_${normalizedItem}`,
-                            value: result
+                            value: normalizedResult
                         });
                     }
                     continue;
                 }
                 
                 // Alternative format: 尿検査 蛋白 -
-                const urineTestMatch = line.match(/^尿検査[\s　]+(.+?)[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineTestMatch = line.match(/^尿検査[\s　]+(.+?)[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
-                    const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
+                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
                     if (result && result.trim()) {
+                        const normalizedResult = result.replace(',', '.');
                         results.push({
                             examId,
                             item: `尿_${normalizedItem}`,
-                            value: result
+                            value: normalizedResult
                         });
                     }
                     continue;
                 }
                 
                 // Parse urine test with bold markers
-                const urineBoldMatch = line.match(/\*\*尿[\s　]*(.+?)\*\*[\s　]+([\+\-±]*|\d+\.?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineBoldMatch = line.match(/\*\*尿[\s　]*(.+?)\*\*[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
-                    const normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
+                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
                     if (result && result.trim()) {
+                        const normalizedResult = result.replace(',', '.');
                         results.push({
                             examId,
                             item: `尿_${normalizedItem}`,
-                            value: result
+                            value: normalizedResult
                         });
                     }
                     continue;
                 }
                 
                 // Additional pattern for items like "尿pH 6.5" or "尿 pH 7.0"
-                const urineSpecificMatch = line.match(/^尿[\s　]*(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)[\s　]*[:：]?[\s　]*([\d.]+|[\+\-±]+|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineSpecificMatch = line.match(/^尿[\s　]*(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)[\s　]*[:：]?[\s　]*([\d\.\,]+|[\+\-±]+|陰性|陽性|擬陽性|正常|異常)$/);
                 if (urineSpecificMatch) {
                     const [, testItem, result] = urineSpecificMatch;
+                    const normalizedResult = result.replace(',', '.');
                     results.push({
                         examId,
                         item: `尿_${testItem}`,
-                        value: result
+                        value: normalizedResult
                     });
                     continue;
                 }
                 
-                // Parse vision test results
-                const visionMatch = line.match(/^視力\s+(.+?)\s+([0-9.]+)$/);
+                // Parse vision test results - flexible format
+                const visionMatch = line.match(/^視力[\s\t　]*(.+?)[\s\t　]+([0-9\.\,]+)$/);
                 if (visionMatch) {
                     const [, position, value] = visionMatch;
+                    const normalizedValue = value.replace(',', '.');
                     results.push({
                         examId,
                         item: `視力_${position.trim()}`,
-                        value
+                        value: normalizedValue
                     });
                     continue;
                 }
                 
-                // Parse hearing test results
-                const hearingMatch = line.match(/^聴力(.+?)$/);
+                // Parse hearing test results - flexible format
+                const hearingMatch = line.match(/^聴力[\s\t　]*[:：]?(.+?)$/);
                 if (hearingMatch) {
                     const [, details] = hearingMatch;
                     // Parse hearing details more specifically
@@ -801,13 +839,15 @@ HbA1c 5.6 %`;
                 }
                 
                 // Parse blood glucose (血糖) - various formats
-                const bloodGlucoseMatch = line.match(/^(血糖|空腹時血糖|随時血糖|食後血糖)\s*[:：]?\s*([0-9.]+)\s*(mg\/dl|mg\/dL)?/i);
+                const bloodGlucoseMatch = line.match(/^(血糖値?|空腹時血糖値?|随時血糖値?|食後血糖値?)[\s\t　]*[:：]?[\s\t　]*([0-9\.\,]+)\s*(mg\/dl|mg\/dL)?/i);
                 if (bloodGlucoseMatch) {
                     const [, testType, value] = bloodGlucoseMatch;
+                    const normalizedType = testType.replace('値', ''); // Remove '値' if present
+                    const normalizedValue = value.replace(',', '.');
                     results.push({
                         examId,
-                        item: testType,
-                        value: value
+                        item: normalizedType,
+                        value: normalizedValue
                     });
                     continue;
                 }
