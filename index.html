@@ -244,6 +244,7 @@
             <button type="button" class="btn-primary" onclick="analyzeData()">データ解析</button>
             <button type="button" class="btn-secondary" onclick="loadSampleData()">サンプルデータ1</button>
             <button type="button" class="btn-secondary" onclick="loadSampleData2()">サンプルデータ2</button>
+            <button type="button" class="btn-secondary" onclick="loadSampleData3()">サンプルデータ3（混合スペース）</button>
         </div>
         
         <div id="previewSection">
@@ -337,6 +338,37 @@ HbA1c: 6.2%
 脈拍    78`;
         }
 
+        function loadSampleData3() {
+            document.getElementById('examId').value = '99999';
+            // Mix of half-width and full-width spaces
+            document.getElementById('examData').value = `氏名 タカハシ　イチロウ
+高橋　一郎
+年齢　65歳
+性別 男性
+生年月日　1959年(昭和34年)7月20日
+
+血圧 142/91
+脈拍　82
+身長 168 cm
+体重　73.2kg
+BMI　25.9
+腹囲 92cm
+
+尿　蛋白　-
+尿 糖　-
+尿　pH 6.8
+尿 潜血　+
+尿　ケトン体 -
+
+視力　右（裸眼）　0.5
+視力 左（裸眼） 0.7
+
+聴力　異常なし
+
+空腹時血糖　108
+HbA1c 5.9%`;
+        }
+
         function analyzeData() {
             const examId = document.getElementById('examId').value.trim();
             const examData = document.getElementById('examData').value.trim();
@@ -373,6 +405,11 @@ HbA1c: 6.2%
             const results = [];
             const lines = data.split('\n');
             
+            // Define common regex pattern for spaces (half-width and full-width)
+            const SP = '[\\s\\t　]'; // Matches space, tab, and full-width space
+            const SP_PLUS = SP + '+'; // One or more spaces
+            const SP_STAR = SP + '*'; // Zero or more spaces
+            
             // console.log('Parsing data:', data); // Debug log
             
             for (let i = 0; i < lines.length; i++) {
@@ -408,7 +445,7 @@ HbA1c: 6.2%
                             }
                         }
                         // Parse name: カタカナ姓 カタカナ名 漢字姓 漢字名
-                        const nameParts = value.trim().split(/\s+/);
+                        const nameParts = value.trim().split(new RegExp(SP_PLUS));
                         console.log('Name parts:', nameParts); // Debug name parsing
                         
                         if (nameParts.length >= 4) {
@@ -537,7 +574,7 @@ HbA1c: 6.2%
                 
                 // Alternative parsing for basic info without bold markers
                 // Pattern: 項目名：値 or 項目名:値 or 項目名　値 or 項目名    値 (with tabs)
-                const basicInfoMatch = line.match(/^(氏名|生年月日|年齢|性別)[\s\t　]*[:：]?[\s\t　]*(.+)$/);
+                const basicInfoMatch = line.match(new RegExp(`^(氏名|生年月日|年齢|性別)${SP_STAR}[:：]?${SP_STAR}(.+)$`));
                 if (basicInfoMatch) {
                     const [, key, value] = basicInfoMatch;
                     // console.log('Basic info match found:', key, '=', value); // Debug log
@@ -563,7 +600,7 @@ HbA1c: 6.2%
                             }
                         }
                         // Parse name: カタカナ姓 カタカナ名 漢字姓 漢字名
-                        const nameParts = value.trim().split(/\s+/);
+                        const nameParts = value.trim().split(new RegExp(SP_PLUS));
                         console.log('Name parts:', nameParts); // Debug name parsing
                         
                         if (nameParts.length >= 4) {
@@ -691,7 +728,7 @@ HbA1c: 6.2%
                 }
                 
              // Parse blood pressure - flexible format
-                const bloodPressureMatch = line.match(/^血圧[\s\t　]*[:：]?[\s\t　]*(\d+)\s*[\/／]\s*(\d+)\s*(mmHg)?/i);
+                const bloodPressureMatch = line.match(new RegExp(`^血圧${SP_STAR}[:：]?${SP_STAR}(\\d+)${SP_STAR}[\\/／]${SP_STAR}(\\d+)${SP_STAR}(mmHg)?`, 'i'));
                 if (bloodPressureMatch) {
                     const [, systolic, diastolic] = bloodPressureMatch;
                     results.push({
@@ -703,7 +740,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse vital signs - flexible format
-                const vitalMatch = line.match(/^(脈拍|体重|BMI|腹囲|身長)[\s\t　]*[:：]?[\s\t　]*([0-9\.\,]+)\s*(.*)$/);
+                const vitalMatch = line.match(new RegExp(`^(脈拍|体重|BMI|腹囲|身長)${SP_STAR}[:：]?${SP_STAR}([0-9\\.\\,]+)${SP_STAR}(.*)$`));
                 if (vitalMatch) {
                     const [, item, value] = vitalMatch;
                     const normalizedValue = value.replace(',', '.');
@@ -718,11 +755,11 @@ HbA1c: 6.2%
                 // Parse urine test results - improved pattern
                 // Handle various formats: 尿蛋白, 尿　蛋白, 尿 蛋白 etc.
                 // Support pH values (e.g., 6.5, 7.0, 8,5) and other results
-                const urineMatch = line.match(/^尿[\s　]*(.+?)[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineMatch = line.match(new RegExp(`^尿${SP_STAR}(.+?)${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineMatch) {
                     const [, testItem, result] = urineMatch;
                     // Normalize the test item name
-                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
                     // Normalize common variations
                     if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
                     if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
@@ -740,10 +777,10 @@ HbA1c: 6.2%
                 }
                 
                 // Alternative format: 尿検査 蛋白 -
-                const urineTestMatch = line.match(/^尿検査[\s　]+(.+?)[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineTestMatch = line.match(new RegExp(`^尿検査${SP_PLUS}(.+?)${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
-                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
                     if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
                     if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
                     if (result && result.trim()) {
@@ -758,10 +795,10 @@ HbA1c: 6.2%
                 }
                 
                 // Parse urine test with bold markers
-                const urineBoldMatch = line.match(/\*\*尿[\s　]*(.+?)\*\*[\s　]+([\+\-±]*|\d+[\.\,]?\d*|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineBoldMatch = line.match(new RegExp(`\\*\\*尿${SP_STAR}(.+?)\\*\\*${SP_PLUS}([\\+\\-±]*|\\d+[\\.\\,]?\\d*|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
-                    let normalizedItem = testItem.trim().replace(/[\s　]+/g, '');
+                    let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
                     if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
                     if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
                     if (result && result.trim()) {
@@ -776,7 +813,7 @@ HbA1c: 6.2%
                 }
                 
                 // Additional pattern for items like "尿pH 6.5" or "尿 pH 7.0"
-                const urineSpecificMatch = line.match(/^尿[\s　]*(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)[\s　]*[:：]?[\s　]*([\d\.\,]+|[\+\-±]+|陰性|陽性|擬陽性|正常|異常)$/);
+                const urineSpecificMatch = line.match(new RegExp(`^尿${SP_STAR}(pH|PH|ｐＨ|比重|ビリルビン|ケトン体|潜血|白血球|亜硝酸塩)${SP_STAR}[:：]?${SP_STAR}([\\d\\.\\,]+|[\\+\\-±]+|陰性|陽性|擬陽性|正常|異常)$`));
                 if (urineSpecificMatch) {
                     const [, testItem, result] = urineSpecificMatch;
                     const normalizedResult = result.replace(',', '.');
@@ -789,7 +826,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse vision test results - flexible format
-                const visionMatch = line.match(/^視力[\s\t　]*(.+?)[\s\t　]+([0-9\.\,]+)$/);
+                const visionMatch = line.match(new RegExp(`^視力${SP_STAR}(.+?)${SP_PLUS}([0-9\\.\\,]+)$`));
                 if (visionMatch) {
                     const [, position, value] = visionMatch;
                     const normalizedValue = value.replace(',', '.');
@@ -802,7 +839,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse hearing test results - flexible format
-                const hearingMatch = line.match(/^聴力[\s\t　]*[:：]?(.+?)$/);
+                const hearingMatch = line.match(new RegExp(`^聴力${SP_STAR}[:：]?(.+?)$`));
                 if (hearingMatch) {
                     const [, details] = hearingMatch;
                     // Parse hearing details more specifically
@@ -839,7 +876,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse blood glucose (血糖) - various formats
-                const bloodGlucoseMatch = line.match(/^(血糖値?|空腹時血糖値?|随時血糖値?|食後血糖値?)[\s\t　]*[:：]?[\s\t　]*([0-9\.\,]+)\s*(mg\/dl|mg\/dL)?/i);
+                const bloodGlucoseMatch = line.match(new RegExp(`^(血糖値?|空腹時血糖値?|随時血糖値?|食後血糖値?)${SP_STAR}[:：]?${SP_STAR}([0-9\\.\\,]+)${SP_STAR}(mg\\/dl|mg\\/dL)?`, 'i'));
                 if (bloodGlucoseMatch) {
                     const [, testType, value] = bloodGlucoseMatch;
                     const normalizedType = testType.replace('値', ''); // Remove '値' if present
@@ -853,7 +890,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse HbA1c - various formats
-                const hba1cMatch = line.match(/^(HbA1c|ヘモグロビンA1c|ヘモグロビンエーワンシー)\s*[:：]?\s*([0-9.]+)\s*(%|％)?/i);
+                const hba1cMatch = line.match(new RegExp(`^(HbA1c|ヘモグロビンA1c|ヘモグロビンエーワンシー)${SP_STAR}[:：]?${SP_STAR}([0-9\\.\\,]+)${SP_STAR}(%|％)?`, 'i'));
                 if (hba1cMatch) {
                     const [, , value] = hba1cMatch;
                     results.push({
@@ -865,7 +902,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse blood glucose with bold markers
-                const bloodGlucoseBoldMatch = line.match(/\*\*(血糖|空腹時血糖|随時血糖|食後血糖)\*\*\s*[:：]?\s*([0-9.]+)\s*(mg\/dl|mg\/dL)?/i);
+                const bloodGlucoseBoldMatch = line.match(new RegExp(`\\*\\*(血糖|空腹時血糖|随時血糖|食後血糖)\\*\\*${SP_STAR}[:：]?${SP_STAR}([0-9\\.\\,]+)${SP_STAR}(mg\\/dl|mg\\/dL)?`, 'i'));
                 if (bloodGlucoseBoldMatch) {
                     const [, testType, value] = bloodGlucoseBoldMatch;
                     results.push({
@@ -877,7 +914,7 @@ HbA1c: 6.2%
                 }
                 
                 // Parse HbA1c with bold markers
-                const hba1cBoldMatch = line.match(/\*\*(HbA1c|ヘモグロビンA1c|ヘモグロビンエーワンシー)\*\*\s*[:：]?\s*([0-9.]+)\s*(%|％)?/i);
+                const hba1cBoldMatch = line.match(new RegExp(`\\*\\*(HbA1c|ヘモグロビンA1c|ヘモグロビンエーワンシー)\\*\\*${SP_STAR}[:：]?${SP_STAR}([0-9\\.\\,]+)${SP_STAR}(%|％)?`, 'i'));
                 if (hba1cBoldMatch) {
                     const [, , value] = hba1cBoldMatch;
                     results.push({
