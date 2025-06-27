@@ -361,7 +361,7 @@
                             if (nextLine && /^[^:：\s\*]*[一-龯]/.test(nextLine) && !/^\*\*/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: value
                                 });
                                 results.push({
@@ -380,7 +380,7 @@
                         if (nameParts.length >= 4) {
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: `${nameParts[0]}　${nameParts[1]}`
                             });
                             results.push({
@@ -392,7 +392,7 @@
                             // Handle case: カタカナ姓名 漢字姓 漢字名
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: nameParts[0]
                             });
                             results.push({
@@ -406,7 +406,7 @@
                             if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: nameParts[0]
                                 });
                                 results.push({
@@ -429,7 +429,7 @@
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: fullName
                                 });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
@@ -516,7 +516,7 @@
                             if (nextLine && /^[^:：\s]*[一-龯]/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: value
                                 });
                                 results.push({
@@ -535,7 +535,7 @@
                         if (nameParts.length >= 4) {
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: `${nameParts[0]}　${nameParts[1]}`
                             });
                             results.push({
@@ -547,7 +547,7 @@
                             // Handle case: カタカナ姓名 漢字姓 漢字名
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: nameParts[0]
                             });
                             results.push({
@@ -561,7 +561,7 @@
                             if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: nameParts[0]
                                 });
                                 results.push({
@@ -584,7 +584,7 @@
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: fullName
                                 });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
