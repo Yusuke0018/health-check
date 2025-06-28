@@ -120,6 +120,15 @@
             background-color: #e68900;
         }
 
+        .btn-reset {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background-color: #da190b;
+        }
+
         #previewSection {
             display: none;
             margin-top: 30px;
@@ -159,6 +168,8 @@
         .preview-table td {
             padding: 10px 12px;
             border-bottom: 1px solid #eee;
+            white-space: pre-wrap;
+            line-height: 1.5;
         }
 
         .preview-table tr:hover {
@@ -236,11 +247,6 @@
         </div>
         
         <div class="form-group">
-            <label for="examDate">受診日</label>
-            <input type="text" id="examDate" readonly style="background-color: #f5f5f5;">
-        </div>
-        
-        <div class="form-group">
             <label for="examData">受診データ *</label>
             <textarea id="examData" placeholder="受診データをペーストまたは入力してください"></textarea>
         </div>
@@ -250,6 +256,7 @@
             <button type="button" class="btn-secondary" onclick="loadSampleData()">サンプルデータ1</button>
             <button type="button" class="btn-secondary" onclick="loadSampleData2()">サンプルデータ2</button>
             <button type="button" class="btn-secondary" onclick="loadSampleData3()">サンプルデータ3（混合スペース）</button>
+            <button type="button" class="btn-reset" onclick="resetForm()">リセット</button>
         </div>
         
         <div id="previewSection">
@@ -261,7 +268,6 @@
                 <thead>
                     <tr>
                         <th>受診ID</th>
-                        <th>受診日</th>
                         <th>項目</th>
                         <th>値</th>
                     </tr>
@@ -285,6 +291,7 @@
             <ul>
                 <li>全角・半角スペースの混在に対応</li>
                 <li>項目の順番は自由</li>
+                <li>受診日は自動的にシステムから取得されます</li>
                 <li>尿検査: -, +, 2+, 3+, ±, 陰性, 陽性, 数値など</li>
                 <li>血糖値・HbA1c: 空腹時血糖、随時血糖、食後血糖に対応</li>
                 <li>カンマ区切りの小数点（8,5）にも対応</li>
@@ -294,16 +301,6 @@
 
     <script>
         let parsedData = [];
-        
-        // Set current date when page loads
-        window.addEventListener('DOMContentLoaded', function() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            const formattedDate = `${year}/${month}/${day}`;
-            document.getElementById('examDate').value = formattedDate;
-        });
 
         function loadSampleData() {
             document.getElementById('examId').value = '12345';
@@ -430,14 +427,16 @@ HbA1c 5.9%`;
             const lines = data.split('\n');
             
             // Add examination date as the first item
-            const examDate = document.getElementById('examDate').value;
-            if (examDate) {
-                results.push({
-                    examId,
-                    item: '受診日',
-                    value: examDate
-                });
-            }
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = (today.getMonth() + 1).toString().padStart(2, '0');
+            const day = today.getDate().toString().padStart(2, '0');
+            const examDate = `${year}/${month}/${day}`;
+            results.push({
+                examId,
+                item: '受診日',
+                value: examDate
+            });
             
             // Define common regex pattern for spaces (half-width and full-width)
             const SP = '[\\s\\t　]'; // Matches space, tab, and full-width space
@@ -466,7 +465,7 @@ HbA1c 5.9%`;
                             if (nextLine && /^[^:：\s\*]*[一-龯]/.test(nextLine) && !/^\*\*/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: value
                                 });
                                 results.push({
@@ -485,7 +484,7 @@ HbA1c 5.9%`;
                         if (nameParts.length >= 4) {
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: `${nameParts[0]}　${nameParts[1]}`
                             });
                             results.push({
@@ -497,7 +496,7 @@ HbA1c 5.9%`;
                             // Handle case: カタカナ姓名 漢字姓 漢字名
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: nameParts[0]
                             });
                             results.push({
@@ -511,7 +510,7 @@ HbA1c 5.9%`;
                             if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: nameParts[0]
                                 });
                                 results.push({
@@ -534,7 +533,7 @@ HbA1c 5.9%`;
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: fullName
                                 });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
@@ -621,7 +620,7 @@ HbA1c 5.9%`;
                             if (nextLine && /^[^:：\s]*[一-龯]/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: value
                                 });
                                 results.push({
@@ -640,7 +639,7 @@ HbA1c 5.9%`;
                         if (nameParts.length >= 4) {
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: `${nameParts[0]}　${nameParts[1]}`
                             });
                             results.push({
@@ -652,7 +651,7 @@ HbA1c 5.9%`;
                             // Handle case: カタカナ姓名 漢字姓 漢字名
                             results.push({
                                 examId,
-                                item: '氏名（ふりがな）',
+                                item: 'フリガナ',
                                 value: nameParts[0]
                             });
                             results.push({
@@ -666,7 +665,7 @@ HbA1c 5.9%`;
                             if (/^[ァ-ヶー・　\s]+$/.test(nameParts[0]) && /[一-龯]/.test(nameParts[1])) {
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: nameParts[0]
                                 });
                                 results.push({
@@ -689,7 +688,7 @@ HbA1c 5.9%`;
                                 // If all katakana, treat as furigana
                                 results.push({
                                     examId,
-                                    item: '氏名（ふりがな）',
+                                    item: 'フリガナ',
                                     value: fullName
                                 });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
@@ -794,9 +793,7 @@ HbA1c 5.9%`;
                     const [, testItem, result] = urineMatch;
                     // Normalize the test item name
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
-                    // Normalize common variations
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     // Only add if result is not empty
                     if (result && result.trim()) {
                         // Normalize decimal separator
@@ -815,8 +812,7 @@ HbA1c 5.9%`;
                 if (urineTestMatch) {
                     const [, testItem, result] = urineTestMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     if (result && result.trim()) {
                         const normalizedResult = result.replace(',', '.');
                         results.push({
@@ -833,8 +829,7 @@ HbA1c 5.9%`;
                 if (urineBoldMatch) {
                     const [, testItem, result] = urineBoldMatch;
                     let normalizedItem = testItem.trim().replace(new RegExp(SP_PLUS, 'g'), '');
-                    if (normalizedItem === '蛋白質') normalizedItem = '蛋白';
-                    if (normalizedItem === 'ブドウ糖') normalizedItem = '糖';
+                    // Keep the full names without normalization
                     if (result && result.trim()) {
                         const normalizedResult = result.replace(',', '.');
                         results.push({
@@ -860,14 +855,15 @@ HbA1c 5.9%`;
                 }
                 
                 // Parse vision test results - flexible format
-                const visionMatch = line.match(new RegExp(`^視力${SP_STAR}(.+?)${SP_PLUS}([0-9\\.\\,]+)$`));
+                // Accept numeric values or values with kanji (e.g., "0.1以下")
+                const visionMatch = line.match(new RegExp(`^視力${SP_STAR}(.+?)${SP_PLUS}([0-9\\.\\,]+[\\u4e00-\\u9fff]*|[0-9\\.\\,]+以[上下])$`));
                 if (visionMatch) {
                     const [, position, value] = visionMatch;
-                    const normalizedValue = value.replace(',', '.');
+                    // Keep the value as is, including any kanji characters
                     results.push({
                         examId,
                         item: `視力_${position.trim()}`,
-                        value: normalizedValue
+                        value: value
                     });
                     continue;
                 }
@@ -965,6 +961,41 @@ HbA1c 5.9%`;
                     });
                     continue;
                 }
+                
+                // Parse smoking and drinking history as 問診_所見
+                const smokingMatch = line.match(new RegExp(`^喫煙歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (smokingMatch) {
+                    const [, details] = smokingMatch;
+                    // Store smoking history temporarily
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.smoking = `喫煙歴：${details}`;
+                    continue;
+                }
+                
+                const drinkingMatch = line.match(new RegExp(`^飲酒歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (drinkingMatch) {
+                    const [, details] = drinkingMatch;
+                    // Store drinking history temporarily
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.drinking = `飲酒歴：${details}`;
+                    continue;
+                }
+            }
+            
+            // After processing all lines, combine smoking and drinking history if found
+            if (this.tempQuestionnaire && (this.tempQuestionnaire.smoking || this.tempQuestionnaire.drinking)) {
+                const combinedHistory = [];
+                if (this.tempQuestionnaire.smoking) combinedHistory.push(this.tempQuestionnaire.smoking);
+                if (this.tempQuestionnaire.drinking) combinedHistory.push(this.tempQuestionnaire.drinking);
+                
+                results.push({
+                    examId,
+                    item: '問診_所見',
+                    value: combinedHistory.join('\n')
+                });
+                
+                // Clear temporary storage
+                delete this.tempQuestionnaire;
             }
             
             console.log('Parsed results:', results); // Final debug log
@@ -982,12 +1013,12 @@ HbA1c 5.9%`;
             // Add rows
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                const examDate = document.getElementById('examDate').value;
+                // For the value field, convert newlines to <br> tags
+                const valueHtml = escapeHtml(row.value).replace(/\n/g, '<br>');
                 tr.innerHTML = `
                     <td>${escapeHtml(row.examId)}</td>
-                    <td>${escapeHtml(examDate)}</td>
                     <td>${escapeHtml(row.item)}</td>
-                    <td>${escapeHtml(row.value)}</td>
+                    <td>${valueHtml}</td>
                 `;
                 previewBody.appendChild(tr);
             });
@@ -1004,11 +1035,10 @@ HbA1c 5.9%`;
             
             // Create CSV content with BOM
             const BOM = '\uFEFF';
-            let csvContent = BOM + '受診ID,受診日,項目,値\n';
+            let csvContent = BOM + '受診ID,項目,値\n';
             
-            const examDate = document.getElementById('examDate').value;
             parsedData.forEach(row => {
-                csvContent += `"${row.examId}","${examDate}","${row.item}","${row.value}"\n`;
+                csvContent += `"${row.examId}","${row.item}","${row.value}"\n`;
             });
             
             // Create blob and download
@@ -1038,6 +1068,18 @@ HbA1c 5.9%`;
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function resetForm() {
+            document.getElementById('examId').value = '';
+            document.getElementById('examData').value = '';
+            document.getElementById('previewSection').style.display = 'none';
+            parsedData = [];
+            
+            // Clear error message if displayed
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
         }
     </script>
 </body>
