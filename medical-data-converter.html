@@ -262,6 +262,17 @@
                 </tbody>
             </table>
             <button type="button" class="btn-download" onclick="downloadCSV()">CSVダウンロード</button>
+            <button type="button" class="btn-secondary" onclick="generateGeminiPrompt()">Gemini用プロンプト生成</button>
+        </div>
+        
+        <div id="geminiPromptSection" style="display: none; margin-top: 20px;">
+            <h3 style="color: #2c3e50; margin-bottom: 10px;">Gemini分析用プロンプト</h3>
+            <p style="color: #666; margin-bottom: 10px;">以下のテキストをコピーして、Geminiに貼り付けて分析を依頼してください：</p>
+            <textarea id="geminiPrompt" style="width: 100%; min-height: 200px; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; margin-bottom: 10px;" readonly></textarea>
+            <button type="button" class="btn-primary" onclick="copyGeminiPrompt()">プロンプトをコピー</button>
+            <a href="https://gemini.google.com/" target="_blank" style="margin-left: 10px;">
+                <button type="button" class="btn-secondary">Geminiを開く</button>
+            </a>
         </div>
         
         <div class="usage-info">
@@ -304,7 +315,10 @@ BMI 23.1
 視力 右（矯正） 1.2
 視力 左（矯正） 1.0
 
-聴力（左右1000Hz,4000Hz） 異常なし`;
+聴力（左右1000Hz,4000Hz） 異常なし
+
+血糖 98 mg/dL
+HbA1c 5.4 %`;
         }
 
         function analyzeData() {
@@ -351,6 +365,36 @@ BMI 23.1
                 
                 // console.log('Processing line:', line); // Debug log
                 
+                // Handle case: '氏名' line without value, followed by furigana and kanji
+                // 例:
+                // 氏名
+                // ヒロセ　ノノ
+                // 廣瀬　乃々
+                if (/^氏名[\s　\t]*[:：]?[\s　\t]*$/.test(line)) {
+                    const nextLine = (i + 1 < lines.length) ? lines[i + 1].trim() : '';
+                    const nextNextLine = (i + 2 < lines.length) ? lines[i + 2].trim() : '';
+                    const isKana = (s) => /^[ぁ-んァ-ヶー・\s　]+$/.test(s);
+                    const isKanjiLine = (s) => /[一-龯]/.test(s);
+                    const isNewField = (s) => /^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(s);
+
+                    if (nextLine && isKana(nextLine) && nextNextLine && isKanjiLine(nextNextLine) && !isNewField(nextNextLine)) {
+                        results.push({ examId, item: '氏名（ふりがな）', value: nextLine });
+                        results.push({ examId, item: '氏名（漢字）', value: nextNextLine });
+                        i += 2;
+                        continue;
+                    }
+                    if (nextLine && isKanjiLine(nextLine) && !isNewField(nextLine)) {
+                        results.push({ examId, item: '氏名（漢字）', value: nextLine });
+                        i += 1;
+                        continue;
+                    }
+                    if (nextLine && isKana(nextLine)) {
+                        results.push({ examId, item: '氏名（ふりがな）', value: nextLine });
+                        i += 1;
+                        continue;
+                    }
+                }
+
                 // Parse basic info with bold markers
                 const boldMatch = line.match(/\*\*(.+?)\*\*(.+)/);
                 if (boldMatch) {
@@ -750,6 +794,30 @@ BMI 23.1
                     }
                     continue;
                 }
+                
+                // Parse blood glucose (血糖)
+                const bloodGlucoseMatch = line.match(/^血糖\s+(\d+\.?\d*)\s*(.*)$/);
+                if (bloodGlucoseMatch) {
+                    const [, value, unit] = bloodGlucoseMatch;
+                    results.push({
+                        examId,
+                        item: '血糖',
+                        value: value
+                    });
+                    continue;
+                }
+                
+                // Parse HbA1c
+                const hba1cMatch = line.match(/^HbA1c\s+(\d+\.?\d*)\s*(.*)$/);
+                if (hba1cMatch) {
+                    const [, value, unit] = hba1cMatch;
+                    results.push({
+                        examId,
+                        item: 'HbA1c',
+                        value: value
+                    });
+                    continue;
+                }
             }
             
             console.log('Parsed results:', results); // Final debug log
@@ -820,6 +888,96 @@ BMI 23.1
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        function generateGeminiPrompt() {
+            if (parsedData.length === 0) {
+                showError('分析するデータがありません。先にデータ解析を実行してください。');
+                return;
+            }
+            
+            const geminiPromptSection = document.getElementById('geminiPromptSection');
+            const geminiPromptTextarea = document.getElementById('geminiPrompt');
+            
+            // Create formatted health data for Gemini
+            let healthData = '以下の健康診断データを分析してください：\n\n';
+            
+            // Group data by category
+            const categories = {
+                '基本情報': ['氏名（ふりがな）', '氏名（漢字）', '生年月日', '年齢', '性別'],
+                'バイタルサイン': ['血圧_収縮期', '血圧_拡張期', '脈拍', '体重', '身長', 'BMI', '腹囲'],
+                '血液検査': ['血糖', 'HbA1c'],
+                '尿検査': [],
+                '視力検査': [],
+                '聴力検査': []
+            };
+            
+            // Organize data by categories
+            parsedData.forEach(item => {
+                if (categories['基本情報'].includes(item.item)) {
+                    healthData += `${item.item}: ${item.value}\n`;
+                } else if (categories['バイタルサイン'].includes(item.item)) {
+                    if (!healthData.includes('\n【バイタルサイン】\n')) {
+                        healthData += '\n【バイタルサイン】\n';
+                    }
+                    healthData += `${item.item}: ${item.value}\n`;
+                } else if (categories['血液検査'].includes(item.item)) {
+                    if (!healthData.includes('\n【血液検査】\n')) {
+                        healthData += '\n【血液検査】\n';
+                    }
+                    healthData += `${item.item}: ${item.value}\n`;
+                } else if (item.item.startsWith('尿_')) {
+                    if (!healthData.includes('\n【尿検査】\n')) {
+                        healthData += '\n【尿検査】\n';
+                    }
+                    healthData += `${item.item}: ${item.value}\n`;
+                } else if (item.item.startsWith('視力_')) {
+                    if (!healthData.includes('\n【視力検査】\n')) {
+                        healthData += '\n【視力検査】\n';
+                    }
+                    healthData += `${item.item}: ${item.value}\n`;
+                } else if (item.item.startsWith('聴力')) {
+                    if (!healthData.includes('\n【聴力検査】\n')) {
+                        healthData += '\n【聴力検査】\n';
+                    }
+                    healthData += `${item.item}: ${item.value}\n`;
+                }
+            });
+            
+            healthData += '\n特に以下の点について分析してください：\n';
+            healthData += '1. 全体的な健康状態の評価\n';
+            healthData += '2. 各検査項目の正常・異常の判定\n';
+            healthData += '3. 特に注意すべき点や改善が必要な項目\n';
+            
+            // Check if blood glucose or HbA1c data exists
+            const hasBloodGlucose = parsedData.some(item => item.item === '血糖');
+            const hasHbA1c = parsedData.some(item => item.item === 'HbA1c');
+            
+            if (hasBloodGlucose || hasHbA1c) {
+                healthData += '4. 血糖値とHbA1cの評価（糖尿病リスクの観点から）\n';
+            }
+            
+            healthData += '5. 今後の健康管理に関するアドバイス\n';
+            healthData += '\n分析結果は具体的で実践的なアドバイスを含めてください。';
+            
+            geminiPromptTextarea.value = healthData;
+            geminiPromptSection.style.display = 'block';
+        }
+        
+        function copyGeminiPrompt() {
+            const geminiPromptTextarea = document.getElementById('geminiPrompt');
+            geminiPromptTextarea.select();
+            document.execCommand('copy');
+            
+            // Show temporary feedback
+            const originalText = event.target.textContent;
+            event.target.textContent = 'コピーしました！';
+            event.target.style.backgroundColor = '#4CAF50';
+            
+            setTimeout(() => {
+                event.target.textContent = originalText;
+                event.target.style.backgroundColor = '';
+            }, 2000);
         }
     </script>
 </body>

@@ -451,6 +451,36 @@ HbA1c 5.9%`;
                 
                 // console.log('Processing line:', line); // Debug log
                 
+                // Handle case: '氏名' line without inline value, followed by furigana and kanji on next lines
+                // e.g.
+                // 氏名
+                // ヒロセ　ノノ
+                // 廣瀬　乃々
+                if (/^氏名[\s　\t]*[:：]?[\s　\t]*$/.test(line)) {
+                    const nextLine = (i + 1 < lines.length) ? lines[i + 1].trim() : '';
+                    const nextNextLine = (i + 2 < lines.length) ? lines[i + 2].trim() : '';
+                    const isKana = (s) => /^[ぁ-んァ-ヶー・\s　]+$/.test(s);
+                    const isKanjiLine = (s) => /[一-龯]/.test(s);
+                    const isNewField = (s) => /^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(s);
+
+                    if (nextLine && isKana(nextLine) && nextNextLine && isKanjiLine(nextNextLine) && !isNewField(nextNextLine)) {
+                        results.push({ examId, item: 'フリガナ', value: nextLine });
+                        results.push({ examId, item: '氏名（漢字）', value: nextNextLine });
+                        i += 2;
+                        continue;
+                    }
+                    if (nextLine && isKanjiLine(nextLine) && !isNewField(nextLine)) {
+                        results.push({ examId, item: '氏名（漢字）', value: nextLine });
+                        i += 1;
+                        continue;
+                    }
+                    if (nextLine && isKana(nextLine)) {
+                        results.push({ examId, item: 'フリガナ', value: nextLine });
+                        i += 1;
+                        continue;
+                    }
+                }
+
                 // Parse basic info with bold markers
                 const boldMatch = line.match(/\*\*(.+?)\*\*(.+)/);
                 if (boldMatch) {
@@ -962,7 +992,33 @@ HbA1c 5.9%`;
                     continue;
                 }
                 
-                // Parse smoking and drinking history as 問診_所見
+                // Parse questionnaire items as 問診_所見
+                // 業務歴 / 自覚症状 / 他覚症状 should appear above 喫煙歴/飲酒歴 in output
+                const workHistoryMatch = line.match(new RegExp(`^業務歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (workHistoryMatch) {
+                    const [, details] = workHistoryMatch;
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.work = `業務歴：${details}`;
+                    continue;
+                }
+
+                const subjectiveMatch = line.match(new RegExp(`^自覚症状${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (subjectiveMatch) {
+                    const [, details] = subjectiveMatch;
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.subjective = `自覚症状：${details}`;
+                    continue;
+                }
+
+                const objectiveMatch = line.match(new RegExp(`^他覚症状${SP_STAR}[:：]?${SP_STAR}(.+)$`));
+                if (objectiveMatch) {
+                    const [, details] = objectiveMatch;
+                    if (!this.tempQuestionnaire) this.tempQuestionnaire = {};
+                    this.tempQuestionnaire.objective = `他覚症状：${details}`;
+                    continue;
+                }
+
+                // 喫煙歴 / 飲酒歴
                 const smokingMatch = line.match(new RegExp(`^喫煙歴${SP_STAR}[:：]?${SP_STAR}(.+)$`));
                 if (smokingMatch) {
                     const [, details] = smokingMatch;
@@ -982,9 +1038,13 @@ HbA1c 5.9%`;
                 }
             }
             
-            // After processing all lines, combine smoking and drinking history if found
-            if (this.tempQuestionnaire && (this.tempQuestionnaire.smoking || this.tempQuestionnaire.drinking)) {
+            // After processing all lines, combine questionnaire items if found
+            if (this.tempQuestionnaire && (this.tempQuestionnaire.work || this.tempQuestionnaire.subjective || this.tempQuestionnaire.objective || this.tempQuestionnaire.smoking || this.tempQuestionnaire.drinking)) {
                 const combinedHistory = [];
+                // Order: 業務歴, 自覚症状, 他覚症状, 喫煙歴, 飲酒歴
+                if (this.tempQuestionnaire.work) combinedHistory.push(this.tempQuestionnaire.work);
+                if (this.tempQuestionnaire.subjective) combinedHistory.push(this.tempQuestionnaire.subjective);
+                if (this.tempQuestionnaire.objective) combinedHistory.push(this.tempQuestionnaire.objective);
                 if (this.tempQuestionnaire.smoking) combinedHistory.push(this.tempQuestionnaire.smoking);
                 if (this.tempQuestionnaire.drinking) combinedHistory.push(this.tempQuestionnaire.drinking);
                 
