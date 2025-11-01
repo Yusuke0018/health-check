@@ -377,6 +377,14 @@ HbA1c 5.4 %`;
                     const isKanjiLine = (s) => /[一-龯]/.test(s);
                     const isNewField = (s) => /^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(s);
 
+                    // Foreigner case: 連続する2行がカタカナ
+                    if (nextLine && isKana(nextLine) && nextNextLine && isKana(nextNextLine) && !isNewField(nextNextLine)) {
+                        results.push({ examId, item: '氏名（ふりがな）', value: nextLine });
+                        results.push({ examId, item: '氏名', value: nextNextLine });
+                        i += 2;
+                        continue;
+                    }
+
                     if (nextLine && isKana(nextLine) && nextNextLine && isKanjiLine(nextNextLine) && !isNewField(nextNextLine)) {
                         results.push({ examId, item: '氏名（ふりがな）', value: nextLine });
                         results.push({ examId, item: '氏名（漢字）', value: nextNextLine });
@@ -418,6 +426,13 @@ HbA1c 5.4 %`;
                                     value: nextLine
                                 });
                                 i++; // Skip the next line as we've already processed it
+                                continue;
+                            }
+                            // If next line is also katakana (foreigner case)
+                            if (nextLine && /^[ぁ-んァ-ヶー・\s　]+$/.test(nextLine) && !/^\*\*/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
+                                results.push({ examId, item: '氏名（ふりがな）', value: value.trim() });
+                                results.push({ examId, item: '氏名', value: nextLine });
+                                i++;
                                 continue;
                             }
                         }
@@ -462,6 +477,10 @@ HbA1c 5.4 %`;
                                     item: '氏名（漢字）',
                                     value: nameParts[1]
                                 });
+                            } else if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /^[ァ-ヶー・　]+$/.test(nameParts[1])) {
+                                const fullKana = `${nameParts[0]}　${nameParts[1]}`.trim();
+                                results.push({ examId, item: '氏名（ふりがな）', value: fullKana });
+                                results.push({ examId, item: '氏名', value: fullKana });
                             } else {
                                 // If pattern doesn't match, just add as is
                                 results.push({
@@ -475,11 +494,8 @@ HbA1c 5.4 %`;
                             const fullName = value.trim();
                             if (/^[ァ-ヶー・　]+$/.test(fullName)) {
                                 // If all katakana, treat as furigana
-                                results.push({
-                                    examId,
-                                    item: '氏名（ふりがな）',
-                                    value: fullName
-                                });
+                                results.push({ examId, item: '氏名（ふりがな）', value: fullName });
+                                results.push({ examId, item: '氏名', value: fullName });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
                                 // If only kanji, treat as kanji name
                                 results.push({
@@ -575,6 +591,13 @@ HbA1c 5.4 %`;
                                 i++; // Skip the next line as we've already processed it
                                 continue;
                             }
+                            // If next line is also katakana (foreigner case)
+                            if (nextLine && /^[ぁ-んァ-ヶー・\s　]+$/.test(nextLine) && !/^(氏名|生年月日|年齢|性別|血圧|脈拍|体重|身長|BMI|腹囲|尿|視力|聴力)/.test(nextLine)) {
+                                results.push({ examId, item: '氏名（ふりがな）', value: value.trim() });
+                                results.push({ examId, item: '氏名', value: nextLine });
+                                i++;
+                                continue;
+                            }
                         }
                         // Parse name: カタカナ姓 カタカナ名 漢字姓 漢字名
                         const nameParts = value.trim().split(/\s+/);
@@ -617,6 +640,10 @@ HbA1c 5.4 %`;
                                     item: '氏名（漢字）',
                                     value: nameParts[1]
                                 });
+                            } else if (/^[ァ-ヶー・　]+$/.test(nameParts[0]) && /^[ァ-ヶー・　]+$/.test(nameParts[1])) {
+                                const fullKana = `${nameParts[0]}　${nameParts[1]}`.trim();
+                                results.push({ examId, item: '氏名（ふりがな）', value: fullKana });
+                                results.push({ examId, item: '氏名', value: fullKana });
                             } else {
                                 // If pattern doesn't match, just add as is
                                 results.push({
@@ -630,11 +657,8 @@ HbA1c 5.4 %`;
                             const fullName = value.trim();
                             if (/^[ァ-ヶー・　]+$/.test(fullName)) {
                                 // If all katakana, treat as furigana
-                                results.push({
-                                    examId,
-                                    item: '氏名（ふりがな）',
-                                    value: fullName
-                                });
+                                results.push({ examId, item: '氏名（ふりがな）', value: fullName });
+                                results.push({ examId, item: '氏名', value: fullName });
                             } else if (/[一-龯]/.test(fullName) && !/[ァ-ヶー]/.test(fullName)) {
                                 // If only kanji, treat as kanji name
                                 results.push({

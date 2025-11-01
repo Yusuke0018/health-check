@@ -1,0 +1,11 @@
+timestamp: 2025-11-01T16:44:50+09:00
+branch: main
+latest_commit: a320747
+diff_stat:
+a320747 feat: 問診_所見に業務歴/自覚症状/他覚症状を追加し、氏名行のみ→次行フリガナ/次々行漢字形式に対応
+ index.html                  |  68 +++++++++++++++++--
+ medical-data-converter.html | 162 +++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 224 insertions(+), 6 deletions(-)
+push_result:
+To https://github.com/Yusuke0018/health-check.git
+   23e409c..a320747  main -> main
