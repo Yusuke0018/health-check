@@ -1050,19 +1050,27 @@ HbA1c 5.9%`;
             // After processing all lines, combine questionnaire items if found
             if (this.tempQuestionnaire && (this.tempQuestionnaire.work || this.tempQuestionnaire.subjective || this.tempQuestionnaire.objective || this.tempQuestionnaire.smoking || this.tempQuestionnaire.drinking)) {
                 const combinedHistory = [];
-                // Order: 業務歴, 自覚症状, 他覚症状, 喫煙歴, 飲酒歴
+                // Order: 業務歴, (自覚症状 + 他覚症状), (喫煙歴 + 飲酒歴)
                 if (this.tempQuestionnaire.work) combinedHistory.push(this.tempQuestionnaire.work);
-                if (this.tempQuestionnaire.subjective) combinedHistory.push(this.tempQuestionnaire.subjective);
-                if (this.tempQuestionnaire.objective) combinedHistory.push(this.tempQuestionnaire.objective);
-                if (this.tempQuestionnaire.smoking) combinedHistory.push(this.tempQuestionnaire.smoking);
-                if (this.tempQuestionnaire.drinking) combinedHistory.push(this.tempQuestionnaire.drinking);
-                
+
+                // Combine subjective and objective symptoms on same line
+                const symptoms = [];
+                if (this.tempQuestionnaire.subjective) symptoms.push(this.tempQuestionnaire.subjective);
+                if (this.tempQuestionnaire.objective) symptoms.push(this.tempQuestionnaire.objective);
+                if (symptoms.length > 0) combinedHistory.push(symptoms.join(' '));
+
+                // Combine smoking and drinking history on same line
+                const habits = [];
+                if (this.tempQuestionnaire.smoking) habits.push(this.tempQuestionnaire.smoking);
+                if (this.tempQuestionnaire.drinking) habits.push(this.tempQuestionnaire.drinking);
+                if (habits.length > 0) combinedHistory.push(habits.join(' '));
+
                 results.push({
                     examId,
                     item: '問診_所見',
                     value: combinedHistory.join('\n')
                 });
-                
+
                 // Clear temporary storage
                 delete this.tempQuestionnaire;
             }
